@@ -10,11 +10,17 @@ namespace SimpleNetStatusPolling
 {
     public class PollingService
     {
+        private int _pollingInterval;
+
+        private int _timeout;
+
         private List<IPEndPoint> _pollingEndPoints;
 
-        public PollingService(List<IPEndPoint> eps)
+        public PollingService(List<IPEndPoint> eps, int interval = 60 * 1000, int timeout = 1000)
         {
             _pollingEndPoints = eps;
+            _pollingInterval = interval;
+            _timeout = timeout;
         }
 
         private int _pollingIndex;
@@ -29,37 +35,91 @@ namespace SimpleNetStatusPolling
 
         public int _maxTaskCount = 5;
 
-        private bool _isRunning = false;
-
+        private CancellationTokenSource _pollingCancel;
 
         public void Start()
         {
-            if (_isRunning)
+            if (_pollingCancel != null)
                 return;
-            _isRunning = true;
-            _finishTaskCount = 0;
-            _pollingIndex = -1;
-            _pollingResult.Clear();
-            List<Task> tasks = new List<Task>();
+            _pollingCancel = new CancellationTokenSource();
 
-            _tokenSource = new CancellationTokenSource();
-
-            for (int i = 0; i < _maxTaskCount; i++)
+            new Thread(obj =>
             {
-                CreateTaskAndStart();
-            }
+                var cancel = obj as CancellationTokenSource;
+                while (!cancel.IsCancellationRequested)
+                {
+                    var semaphoreSlim = new SemaphoreSlim(_maxTaskCount);
+                    var countdown = new CountdownEvent(_pollingEndPoints.Count);
+                    Dictionary<IPEndPoint, bool> pollingResult = new Dictionary<IPEndPoint, bool>();
+
+                    foreach (var ipe in _pollingEndPoints)
+                    {
+                        semaphoreSlim.Wait();
+                        if (!cancel.IsCancellationRequested)
+                        {
+                            var task = new Task(obj1 =>
+                            {
+                                var cancel1 = obj1 as CancellationTokenSource;
+                                if (cancel1.IsCancellationRequested)
+                                    return;
+                                var ep = ipe;
+                                var result = NetworkHelper.IsOnline(ep, _timeout);
+                                PollingProcessing?.Invoke(ep, result);
+                                Console.WriteLine(ep);
+                                pollingResult.Add(ep, result);
+                                countdown.Signal();
+                                semaphoreSlim.Release();
+                            }, cancel, cancel.Token);
+                            task.Start();
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    if (!cancel.IsCancellationRequested)
+                    {
+                        countdown.Wait();
+                        PollingFinished?.Invoke(pollingResult);
+                    }
+
+                    Thread.Sleep(_pollingInterval);
+                }
+
+            }).Start(_pollingCancel);
+
+
+        }
+
+        public void Start(int interval, int timeout)
+        {
+            _pollingInterval = interval;
+            _timeout = timeout;
+            Start();
+
 
         }
 
         public void Stop()
         {
-            if (_isRunning)
+            if (_pollingCancel != null)
             {
-                _tokenSource.Cancel();
-                _tokenSource.Dispose();
-                _isRunning = false;
+                _pollingCancel.Cancel();
+                _pollingCancel.Dispose();
+                _pollingCancel = null;
             }
         }
+
+        //public void Stop()
+        //{
+        //    if (_isRunning)
+        //    {
+        //        _tokenSource.Cancel();
+        //        _tokenSource.Dispose();
+        //        _isRunning = false;
+        //    }
+        //}
 
         public void CreateTaskAndStart()
         {
@@ -96,8 +156,6 @@ namespace SimpleNetStatusPolling
                 PollingFinished(_pollingResult);
             }
         }
-
-
     }
 
 }

@@ -29,7 +29,7 @@ namespace SimpleNetStatusPollingDemo
                 input = Console.ReadLine();
                 if (input == "s")
                 {
-                    service.Start();
+                    service.Start(2000,10);
                 }
                 else if (input == "e")
                 {
@@ -45,7 +45,7 @@ namespace SimpleNetStatusPollingDemo
 
         private static void Service_PollingFinished(Dictionary<IPEndPoint, bool> obj)
         {
-            Console.WriteLine("Finished!");
+            Console.WriteLine("Finished! " + obj.Count);
             foreach (var item in obj)
             {
                 Console.WriteLine($"{item.Key}, {item.Value}");
@@ -54,8 +54,7 @@ namespace SimpleNetStatusPollingDemo
 
         private static void Service_PollingProcessing(IPEndPoint arg1, bool arg2)
         {
-            Console.WriteLine("Processing!");
-            Console.WriteLine($"{arg1}, {arg2}");
+            Console.WriteLine($"Processing! {arg1}, {arg2}");
         }
     }
 }
