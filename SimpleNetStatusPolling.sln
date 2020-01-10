@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.156
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleNetStatusPollingDemo", "SimpleNetStatusPollingDemo\SimpleNetStatusPollingDemo.csproj", "{5D63FC15-DDD4-4135-A51A-B8BB6F3C3242}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleNetStatusPolling", "SimpleNetStatusPolling\SimpleNetStatusPolling.csproj", "{684DFA51-C4C1-43C2-876D-75B57C10AE55}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5D63FC15-DDD4-4135-A51A-B8BB6F3C3242}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D63FC15-DDD4-4135-A51A-B8BB6F3C3242}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D63FC15-DDD4-4135-A51A-B8BB6F3C3242}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D63FC15-DDD4-4135-A51A-B8BB6F3C3242}.Release|Any CPU.Build.0 = Release|Any CPU
+		{684DFA51-C4C1-43C2-876D-75B57C10AE55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{684DFA51-C4C1-43C2-876D-75B57C10AE55}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{684DFA51-C4C1-43C2-876D-75B57C10AE55}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{684DFA51-C4C1-43C2-876D-75B57C10AE55}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {06FE4B15-5156-43A6-A82A-E85CFDA6135B}
+	EndGlobalSection
+EndGlobal
