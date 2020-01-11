@@ -1,25 +1,27 @@
 ﻿using SimpleNetStatusPolling;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
 
 namespace SimpleNetStatusPollingDemo
 {
     class Program
     {
+        /// <summary>
+        /// 主程序
+        /// </summary>
+        /// <param name="args"></param>
         static void Main(string[] args)
         {
             List<IPEndPoint> ipes = new List<IPEndPoint>();
             for (int i = 1; i < 200; i++)
             {
-                var ipe = new IPEndPoint(IPAddress.Parse($"192.168.1.{i}"), i);
+                var ipe = new IPEndPoint(IPAddress.Parse($"14.215.177.{i}"), 80);
                 ipes.Add(ipe);
             }
 
-            PollingService service = new PollingService(ipes);
-            service.PollingProcessing += Service_PollingProcessing;
+            NetStatusPollingService service = new NetStatusPollingService(ipes);
+            service.PollingProgressing += Service_PollingProgressing;
             service.PollingFinished += Service_PollingFinished;
 
             service.Start();
@@ -29,20 +31,25 @@ namespace SimpleNetStatusPollingDemo
                 input = Console.ReadLine();
                 if (input == "s")
                 {
-                    service.Start(2000,10);
+                    service.Start(2000, 10);
                 }
                 else if (input == "e")
                 {
                     service.Stop();
                 }
-            } while (input != "1");
+                else if (string.IsNullOrWhiteSpace(input))
+                {
+                    service.Stop();
+                    break;
+                }
 
-
-
-
-
+            } while (input != "");
         }
 
+        /// <summary>
+        /// 轮询完成，返回所有结果
+        /// </summary>
+        /// <param name="obj"></param>
         private static void Service_PollingFinished(Dictionary<IPEndPoint, bool> obj)
         {
             Console.WriteLine("Finished! " + obj.Count);
@@ -52,7 +59,12 @@ namespace SimpleNetStatusPollingDemo
             }
         }
 
-        private static void Service_PollingProcessing(IPEndPoint arg1, bool arg2)
+        /// <summary>
+        /// 单次轮询，返回每次的结果
+        /// </summary>
+        /// <param name="arg1"></param>
+        /// <param name="arg2"></param>
+        private static void Service_PollingProgressing(IPEndPoint arg1, bool arg2)
         {
             Console.WriteLine($"Processing! {arg1}, {arg2}");
         }

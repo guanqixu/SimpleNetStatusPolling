@@ -1,42 +1,100 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SimpleNetStatusPolling
 {
-    public class PollingService
+    /// <summary>
+    /// 轮询服务
+    /// </summary>
+    /// <typeparam name="T_Object"></typeparam>
+    /// <typeparam name="T_Result"></typeparam>
+    public abstract class PollingService<T_Object, T_Result> : IPollingService<T_Object, T_Result>
     {
-        private int _pollingInterval;
+        /// <summary>
+        /// 两个轮询间的间隔时间
+        /// </summary>
+        protected int _pollingInterval;
 
-        private int _timeout;
+        /// <summary>
+        /// 超时时间
+        /// </summary>
+        protected int _timeout;
 
-        private List<IPEndPoint> _pollingEndPoints;
+        /// <summary>
+        /// 最大线程数
+        /// </summary>
+        public int _maxThreadCount = 5;
 
-        public PollingService(List<IPEndPoint> eps, int interval = 60 * 1000, int timeout = 1000)
+        /// <summary>
+        /// 轮询开关
+        /// </summary>
+        private CancellationTokenSource _pollingCancel;
+
+        /// <summary>
+        /// 要轮询的对象
+        /// </summary>
+        private List<T_Object> _pollingObjects;
+
+        /// <summary>
+        /// 轮询过程中的事件
+        /// </summary>
+        public event Action<T_Object, T_Result> PollingProgressing;
+
+        /// <summary>
+        /// 轮询完成后的事件
+        /// </summary>
+        public event Action<Dictionary<T_Object, T_Result>> PollingFinished;
+
+        /// <summary>
+        /// 轮询的详细工作
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        protected abstract T_Result PollingDetailWork(T_Object obj);
+
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="objects"></param>
+        /// <param name="interval"></param>
+        /// <param name="timeout"></param>
+        public PollingService(List<T_Object> objects, int interval = 1000 * 60, int timeout = 1000)
         {
-            _pollingEndPoints = eps;
+            _pollingObjects = objects;
             _pollingInterval = interval;
             _timeout = timeout;
         }
 
-        private int _pollingIndex;
+        /// <summary>
+        /// 更改轮询对象
+        /// </summary>
+        /// <param name="objects"></param>
+        public void ChangePollingObjects(List<T_Object> objects)
+        {
+            if (_pollingCancel != null)
+            {
+                Stop();
 
-        public event Action<IPEndPoint, bool> PollingProcessing;
+                _pollingObjects = objects;
 
-        public event Action<Dictionary<IPEndPoint, bool>> PollingFinished;
+                Start();
+            }
 
-        private Dictionary<IPEndPoint, bool> _pollingResult = new Dictionary<IPEndPoint, bool>();
+            else
+            {
+                _pollingObjects = objects;
+            }
 
-        private CancellationTokenSource _tokenSource;
+        }
 
-        public int _maxTaskCount = 5;
-
-        private CancellationTokenSource _pollingCancel;
-
+        /// <summary>
+        /// 开始
+        /// </summary>
         public void Start()
         {
             if (_pollingCancel != null)
@@ -48,11 +106,11 @@ namespace SimpleNetStatusPolling
                 var cancel = obj as CancellationTokenSource;
                 while (!cancel.IsCancellationRequested)
                 {
-                    var semaphoreSlim = new SemaphoreSlim(_maxTaskCount);
-                    var countdown = new CountdownEvent(_pollingEndPoints.Count);
-                    Dictionary<IPEndPoint, bool> pollingResult = new Dictionary<IPEndPoint, bool>();
+                    var semaphoreSlim = new SemaphoreSlim(_maxThreadCount);
+                    var countdown = new CountdownEvent(_pollingObjects.Count);
+                    Dictionary<T_Object, T_Result> pollingResult = new Dictionary<T_Object, T_Result>();
 
-                    foreach (var ipe in _pollingEndPoints)
+                    foreach (var ipe in _pollingObjects)
                     {
                         semaphoreSlim.Wait();
                         if (!cancel.IsCancellationRequested)
@@ -63,8 +121,8 @@ namespace SimpleNetStatusPolling
                                 if (cancel1.IsCancellationRequested)
                                     return;
                                 var ep = ipe;
-                                var result = NetworkHelper.IsOnline(ep, _timeout);
-                                PollingProcessing?.Invoke(ep, result);
+                                var result = PollingDetailWork(ep);
+                                PollingProgressing?.Invoke(ep, result);
                                 Console.WriteLine(ep);
                                 pollingResult.Add(ep, result);
                                 countdown.Signal();
@@ -87,20 +145,13 @@ namespace SimpleNetStatusPolling
                     Thread.Sleep(_pollingInterval);
                 }
 
-            }).Start(_pollingCancel);
-
-
+            })
+            { IsBackground = true }.Start(_pollingCancel);
         }
 
-        public void Start(int interval, int timeout)
-        {
-            _pollingInterval = interval;
-            _timeout = timeout;
-            Start();
-
-
-        }
-
+        /// <summary>
+        /// 停止
+        /// </summary>
         public void Stop()
         {
             if (_pollingCancel != null)
@@ -111,51 +162,64 @@ namespace SimpleNetStatusPolling
             }
         }
 
-        //public void Stop()
-        //{
-        //    if (_isRunning)
-        //    {
-        //        _tokenSource.Cancel();
-        //        _tokenSource.Dispose();
-        //        _isRunning = false;
-        //    }
-        //}
-
-        public void CreateTaskAndStart()
+        /// <summary>
+        /// 开始
+        /// </summary>
+        /// <param name="interval"></param>
+        /// <param name="timeout"></param>
+        public void Start(int interval, int timeout)
         {
-            int index = Interlocked.Increment(ref _pollingIndex);
-            var cancel = _tokenSource;
-            if (index < _pollingEndPoints.Count && !cancel.IsCancellationRequested)
+            if (_pollingCancel == null)
             {
-                var task = new Task((obj) =>
-                {
-                    var tokenSource = obj as CancellationTokenSource;
-                    if (tokenSource.IsCancellationRequested)
-                        return;
-                    var ep = _pollingEndPoints[index];
-                    var result = NetworkHelper.IsOnline(ep, 1);
-                    PollingProcessing?.Invoke(ep, result);
-                    _pollingResult.Add(ep, result);
-                }, cancel, cancel.Token);
-                task.ContinueWith(t => CreateTaskAndStart());
-                task.Start();
-            }
-            else
-            {
-                TaskFinished();
+                _pollingInterval = interval;
+                _timeout = timeout;
+                Start();
             }
         }
 
-        private int _finishTaskCount;
-
-        private void TaskFinished()
+        /// <summary>
+        /// 更改时间
+        /// </summary>
+        /// <param name="interval"></param>
+        /// <param name="timeout"></param>
+        public void ChangeTime(int interval, int timeout)
         {
-            int count = Interlocked.Increment(ref _finishTaskCount);
-            if (count == _maxTaskCount)
-            {
-                PollingFinished(_pollingResult);
-            }
+            _pollingInterval = interval;
+            _timeout = timeout;
         }
+
     }
+
+    /// <summary>
+    /// 轮询服务接口
+    /// </summary>
+    public interface IPollingService
+    {
+        void Start();
+
+        void Stop();
+
+        void Start(int interval, int timeout);
+
+        void ChangeTime(int interval, int timeout);
+    }
+
+    /// <summary>
+    /// 轮询服务接口
+    /// </summary>
+    /// <typeparam name="T_Object"></typeparam>
+    /// <typeparam name="T_Result"></typeparam>
+    public interface IPollingService<T_Object, T_Result> : IPollingService
+    {
+        void ChangePollingObjects(List<T_Object> objects);
+
+        event Action<T_Object, T_Result> PollingProgressing;
+
+        event Action<Dictionary<T_Object, T_Result>> PollingFinished;
+
+    }
+
+
+
 
 }
