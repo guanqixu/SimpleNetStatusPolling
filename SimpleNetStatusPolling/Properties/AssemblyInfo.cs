@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 // 控制。更改这些特性值可修改
 // 与程序集关联的信息。
 [assembly: AssemblyTitle("SimpleNetStatusPolling")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("SimpleNetStatusPolling")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("guanqixu")]
 [assembly: AssemblyProduct("SimpleNetStatusPolling")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]

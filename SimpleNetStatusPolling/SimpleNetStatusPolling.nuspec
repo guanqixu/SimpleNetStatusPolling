@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>guanqixu.$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <repository type="git" url="https://github.com/guanqixu/SimpleNetStatusPolling.git" branch="master" />
+    <icon>PollingService.png</icon>
+    <description>$description$</description>
+    <releaseNotes>第一个版本，网络轮询服务</releaseNotes>
+    <copyright>Copyright 2020</copyright>
+    <tags>network polling ping</tags>
+  </metadata>
+  <files>
+    <file src="../PollingService.png" target="" />
+  </files>
+</package>
