@@ -23,7 +23,7 @@ namespace SimpleNetStatusPollingDemo
             NetStatusPollingService service = new NetStatusPollingService(ipes);
             service.PollingProgressing += Service_PollingProgressing;
             service.PollingFinished += Service_PollingFinished;
-            service.PollingPeriodResultNotifyEvent += Service_PollingPeriodResultNotifyEvent;
+            service.PollingNotifyEvent += Service_PollingPeriodResultNotifyEvent;
 
             service.Start();
             string input;

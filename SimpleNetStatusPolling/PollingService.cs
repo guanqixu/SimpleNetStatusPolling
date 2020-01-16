@@ -58,7 +58,7 @@ namespace SimpleNetStatusPolling
         /// <summary>
         /// 在指定时间后进行结果返回
         /// </summary>
-        public event Action<Dictionary<T_Object, T_Result>> PollingPeriodResultNotifyEvent;
+        public event Action<Dictionary<T_Object, T_Result>> PollingNotifyEvent;
 
         /// <summary>
         /// 轮询的详细工作
@@ -146,7 +146,7 @@ namespace SimpleNetStatusPolling
                                     notifyResult.Add(new Tuple<T_Object, T_Result>(ep, result));
                                     if (notifyResult.Count >= _notifyCount)
                                     {
-                                        PollingPeriodResultNotifyEvent.Invoke(notifyResult.ToDictionary(t => t.Item1, t => t.Item2));
+                                        PollingNotifyEvent.Invoke(notifyResult.ToDictionary(t => t.Item1, t => t.Item2));
                                         notifyResult.Clear();
                                     }
                                 }
@@ -166,7 +166,7 @@ namespace SimpleNetStatusPolling
                         countdown.Wait();
                         if (notifyResult.Count > 0)
                         {
-                            PollingPeriodResultNotifyEvent.Invoke(notifyResult.ToDictionary(t => t.Item1, t => t.Item2));
+                            PollingNotifyEvent.Invoke(notifyResult.ToDictionary(t => t.Item1, t => t.Item2));
                             notifyResult.Clear();
                         }
                         PollingFinished?.Invoke(pollingResult);
@@ -244,6 +244,8 @@ namespace SimpleNetStatusPolling
         event Action<T_Object, T_Result> PollingProgressing;
 
         event Action<Dictionary<T_Object, T_Result>> PollingFinished;
+
+        event Action<Dictionary<T_Object, T_Result>> PollingNotifyEvent;
 
     }
 

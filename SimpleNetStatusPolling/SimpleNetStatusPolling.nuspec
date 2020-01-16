@@ -11,7 +11,8 @@
     <repository type="git" url="https://github.com/guanqixu/SimpleNetStatusPolling.git" branch="master" />
     <icon>PollingService.png</icon>
     <description>$description$</description>
-    <releaseNotes>第一个版本，网络轮询服务</releaseNotes>
+    <releaseNotes>1. 删除不需要的控制台打印信息；
+	2. 增加轮询结果到达指定数量后，也向外进行事件通知的功能(PollingNotifyEvent)</releaseNotes>
     <copyright>Copyright 2020</copyright>
     <tags>network polling ping</tags>
   </metadata>
