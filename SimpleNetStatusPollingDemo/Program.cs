@@ -23,6 +23,7 @@ namespace SimpleNetStatusPollingDemo
             NetStatusPollingService service = new NetStatusPollingService(ipes);
             service.PollingProgressing += Service_PollingProgressing;
             service.PollingFinished += Service_PollingFinished;
+            service.PollingPeriodResultNotifyEvent += Service_PollingPeriodResultNotifyEvent;
 
             service.Start();
             string input;
@@ -44,6 +45,15 @@ namespace SimpleNetStatusPollingDemo
                 }
 
             } while (input != "");
+        }
+
+        private static void Service_PollingPeriodResultNotifyEvent(Dictionary<IPEndPoint, bool> obj)
+        {
+            Console.WriteLine("Period! " + obj.Count);
+            foreach (var item in obj)
+            {
+                Console.WriteLine($"{item.Key}, {item.Value}");
+            }
         }
 
         /// <summary>

@@ -26,6 +26,11 @@ namespace SimpleNetStatusPolling
         protected int _timeout;
 
         /// <summary>
+        /// 进行通知的数量
+        /// </summary>
+        protected int _notifyCount;
+
+        /// <summary>
         /// 最大线程数
         /// </summary>
         public int _maxThreadCount = 5;
@@ -51,11 +56,18 @@ namespace SimpleNetStatusPolling
         public event Action<Dictionary<T_Object, T_Result>> PollingFinished;
 
         /// <summary>
+        /// 在指定时间后进行结果返回
+        /// </summary>
+        public event Action<Dictionary<T_Object, T_Result>> PollingPeriodResultNotifyEvent;
+
+        /// <summary>
         /// 轮询的详细工作
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
         protected abstract T_Result PollingDetailWork(T_Object obj);
+
+        private List<Tuple<T_Object, T_Result>> _intervalResult = new List<Tuple<T_Object, T_Result>>();
 
         /// <summary>
         /// 构造函数
@@ -63,10 +75,11 @@ namespace SimpleNetStatusPolling
         /// <param name="objects"></param>
         /// <param name="interval"></param>
         /// <param name="timeout"></param>
-        public PollingService(List<T_Object> objects, int interval = 1000 * 60, int timeout = 1000)
+        public PollingService(List<T_Object> objects, int interval = 1000 * 60, int timeout = 1000, int notifyCount = 10)
         {
             _pollingObjects = objects;
             _pollingInterval = interval;
+            _notifyCount = notifyCount;
             _timeout = timeout;
         }
 
@@ -110,6 +123,8 @@ namespace SimpleNetStatusPolling
                     var countdown = new CountdownEvent(_pollingObjects.Count);
                     Dictionary<T_Object, T_Result> pollingResult = new Dictionary<T_Object, T_Result>();
 
+                    List<Tuple<T_Object, T_Result>> notifyResult = new List<Tuple<T_Object, T_Result>>();
+
                     foreach (var ipe in _pollingObjects)
                     {
                         semaphoreSlim.Wait();
@@ -123,8 +138,18 @@ namespace SimpleNetStatusPolling
                                 var ep = ipe;
                                 var result = PollingDetailWork(ep);
                                 PollingProgressing?.Invoke(ep, result);
-                                Console.WriteLine(ep);
-                                pollingResult.Add(ep, result);
+                                lock (((ICollection)pollingResult).SyncRoot)
+                                {
+                                    pollingResult.Add(ep, result);
+                                    _intervalResult.Add(new Tuple<T_Object, T_Result>(ep, result));
+
+                                    notifyResult.Add(new Tuple<T_Object, T_Result>(ep, result));
+                                    if (notifyResult.Count >= _notifyCount)
+                                    {
+                                        PollingPeriodResultNotifyEvent.Invoke(notifyResult.ToDictionary(t => t.Item1, t => t.Item2));
+                                        notifyResult.Clear();
+                                    }
+                                }
                                 countdown.Signal();
                                 semaphoreSlim.Release();
                             }, cancel, cancel.Token);
@@ -139,12 +164,15 @@ namespace SimpleNetStatusPolling
                     if (!cancel.IsCancellationRequested)
                     {
                         countdown.Wait();
+                        if (notifyResult.Count > 0)
+                        {
+                            PollingPeriodResultNotifyEvent.Invoke(notifyResult.ToDictionary(t => t.Item1, t => t.Item2));
+                            notifyResult.Clear();
+                        }
                         PollingFinished?.Invoke(pollingResult);
                     }
-
                     Thread.Sleep(_pollingInterval);
                 }
-
             })
             { IsBackground = true }.Start(_pollingCancel);
         }
