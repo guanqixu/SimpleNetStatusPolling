@@ -32,7 +32,7 @@ namespace SimpleNetStatusPollingDemo
                 input = Console.ReadLine();
                 if (input == "s")
                 {
-                    service.Start(2000, 10);
+                    service.Start(2000, 10, 10);
                 }
                 else if (input == "e")
                 {
