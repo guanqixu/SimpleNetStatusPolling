@@ -104,7 +104,7 @@ namespace SimpleNetStatusPolling
         }
 
         /// <summary>
-        /// 开始
+        /// 开始轮询
         /// </summary>
         public void Start()
         {
@@ -139,12 +139,16 @@ namespace SimpleNetStatusPolling
                                 lock (((ICollection)pollingResult).SyncRoot)
                                 {
                                     pollingResult.Add(ep, result);
-                                    notifyResult.Add(new Tuple<T_Object, T_Result>(ep, result));
-                                    if (notifyResult.Count >= _notifyCount)
+                                    if (_notifyCount > 0)
                                     {
-                                        PollingNotifyEvent.Invoke(notifyResult.ToDictionary(t => t.Item1, t => t.Item2));
-                                        notifyResult.Clear();
+                                        notifyResult.Add(new Tuple<T_Object, T_Result>(ep, result));
+                                        if (notifyResult.Count >= _notifyCount)
+                                        {
+                                            PollingNotifyEvent.Invoke(notifyResult.ToDictionary(t => t.Item1, t => t.Item2));
+                                            notifyResult.Clear();
+                                        }
                                     }
+
                                 }
                                 countdown.Signal();
                                 semaphoreSlim.Release();
@@ -174,7 +178,7 @@ namespace SimpleNetStatusPolling
         }
 
         /// <summary>
-        /// 停止
+        /// 停止轮询
         /// </summary>
         public void Stop()
         {
@@ -186,17 +190,20 @@ namespace SimpleNetStatusPolling
             }
         }
 
+
         /// <summary>
-        /// 开始
+        /// 开始轮询
         /// </summary>
-        /// <param name="interval"></param>
-        /// <param name="timeout"></param>
-        public void Start(int interval, int timeout)
+        /// <param name="interval">轮询的间隔时间</param>
+        /// <param name="timeout">每个轮询的超时时间</param>
+        /// <param name="notifyCount">满足通知的数量</param>
+        public void Start(int interval, int timeout, int notifyCount)
         {
             if (_pollingCancel == null)
             {
                 _pollingInterval = interval;
                 _timeout = timeout;
+                _notifyCount = notifyCount;
                 Start();
             }
         }
@@ -204,12 +211,14 @@ namespace SimpleNetStatusPolling
         /// <summary>
         /// 更改时间
         /// </summary>
-        /// <param name="interval"></param>
-        /// <param name="timeout"></param>
-        public void ChangeTime(int interval, int timeout)
+        /// <param name="interval">轮询的间隔时间</param>
+        /// <param name="timeout">每个轮询的超时时间</param>
+        /// <param name="notifyCount">满足通知的数量</param>
+        public void ChangeTime(int interval, int timeout, int notifyCount)
         {
             _pollingInterval = interval;
             _timeout = timeout;
+            _notifyCount = notifyCount;
         }
 
     }
@@ -219,13 +228,31 @@ namespace SimpleNetStatusPolling
     /// </summary>
     public interface IPollingService
     {
+        /// <summary>
+        /// 开始轮询
+        /// </summary>
         void Start();
 
+        /// <summary>
+        /// 停止轮询
+        /// </summary>
         void Stop();
 
-        void Start(int interval, int timeout);
+        /// <summary>
+        /// 开始轮询
+        /// </summary>
+        /// <param name="interval">轮询的间隔时间</param>
+        /// <param name="timeout">每个轮询的超时时间</param>
+        /// <param name="notifyCount">满足通知的数量</param>
+        void Start(int interval, int timeout, int notifyCount);
 
-        void ChangeTime(int interval, int timeout);
+        /// <summary>
+        /// 更改轮询的时间参数
+        /// </summary>
+        /// <param name="interval">轮询的间隔时间</param>
+        /// <param name="timeout">每个轮询的超时时间</param>
+        /// <param name="notifyCount">满足通知的数量</param>
+        void ChangeTime(int interval, int timeout, int notifyCount);
     }
 
     /// <summary>
@@ -235,12 +262,25 @@ namespace SimpleNetStatusPolling
     /// <typeparam name="T_Result"></typeparam>
     public interface IPollingService<T_Object, T_Result> : IPollingService
     {
+        /// <summary>
+        /// 更改轮询的对象
+        /// </summary>
+        /// <param name="objects">对象集合</param>
         void ChangePollingObjects(List<T_Object> objects);
 
+        /// <summary>
+        /// 每次返回轮询结果时触发的事件
+        /// </summary>
         event Action<T_Object, T_Result> PollingProgressing;
 
+        /// <summary>
+        /// 每轮轮询时，将当前轮询对象集合及其轮询结果向外通知
+        /// </summary>
         event Action<Dictionary<T_Object, T_Result>> PollingFinished;
 
+        /// <summary>
+        /// 满足数量条件后，将当前n个轮询对象及其轮询结果向外通知
+        /// </summary>
         event Action<Dictionary<T_Object, T_Result>> PollingNotifyEvent;
 
     }
