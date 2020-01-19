@@ -67,8 +67,6 @@ namespace SimpleNetStatusPolling
         /// <returns></returns>
         protected abstract T_Result PollingDetailWork(T_Object obj);
 
-        private List<Tuple<T_Object, T_Result>> _intervalResult = new List<Tuple<T_Object, T_Result>>();
-
         /// <summary>
         /// 构造函数
         /// </summary>
@@ -141,8 +139,6 @@ namespace SimpleNetStatusPolling
                                 lock (((ICollection)pollingResult).SyncRoot)
                                 {
                                     pollingResult.Add(ep, result);
-                                    _intervalResult.Add(new Tuple<T_Object, T_Result>(ep, result));
-
                                     notifyResult.Add(new Tuple<T_Object, T_Result>(ep, result));
                                     if (notifyResult.Count >= _notifyCount)
                                     {
